@@ -2,6 +2,9 @@
 lefthook = "2.2.2"
 node = "26.13.0"
 oxfmt = "0.75.0"
+"npm:renovate" = { version = "44.221.3", trust_policy_excludes = [
+  "@yarnpkg/libzip",
+] }
 shellcheck = "0.11.0"
 zizmor = "1.32.0"
 

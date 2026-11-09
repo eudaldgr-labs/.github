@@ -82,6 +82,25 @@ url = "https://nodejs.org/dist/v26.13.0/node-v26.13.0-darwin-x64.tar.gz"
 checksum = "sha256:dcc60d59a0746999f99064a01c020445d54d84228c691cdbf25b49ac3b59150a"
 url = "https://nodejs.org/dist/v26.13.0/node-v26.13.0-win-x64.zip"
 
+[[tools."npm:renovate"]]
+version = "44.221.3"
+backend = "npm:renovate"
+specifiers = ["44.221.3"]
+
+[tools."npm:renovate".options]
+backend = "aqua:zizmorcore/zizmor"
+trust_policy_excludes = '["@yarnpkg/libzip"]'
+version = "1.32.0"
+
+[[tools."npm:renovate"]]
+version = "44.221.3"
+aube = { path = "locks/npm-renovate/44.221.3~dd67d2de", digest = "sha256:a8c9ccf42356057ba1a8330205b7ab70d2a8c030c274edc9bb37bab6f9cace2a" }
+backend = "npm:renovate"
+specifiers = ["44.221.3"]
+
+[tools."npm:renovate".options]
+trust_policy_excludes = '["@yarnpkg/libzip"]'
+
 [[tools.oxfmt]]
 version = "0.75.0"
 aube = { path = "locks/oxfmt/0.75.0", digest = "sha256:1d4f470a5dbba272218132db6ff9ba1911075d29dcd3253a0e02b4a5037a8a23" }
