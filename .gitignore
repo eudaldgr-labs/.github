@@ -1,2 +1,8 @@
+*.crt
+*.key
 .DS_Store
+/.claude/
+/.private/
+/.task/
+/.venv/
 Thumbs.db

@@ -1,0 +1,72 @@
+name: Collect patch
+description: Run a command on a checkout without write credentials and upload the changes to selected paths as a patch
+
+inputs:
+  ref:
+    description: Commit to check out; defaults to the pull request head or the triggering commit
+    default: ""
+  run:
+    description: Shell command that regenerates files; runs under `mise exec`
+    required: true
+  paths:
+    description: Newline-separated git pathspecs of the files to keep
+    required: true
+  artifact:
+    description: Artifact name for the patch
+    default: patch
+  extra-files:
+    description: Newline-separated untracked files (for example a PR body) to upload beside the patch
+    default: ""
+
+outputs:
+  changed:
+    description: Whether the command changed any file matched by `paths`
+    value: ${{ steps.diff.outputs.changed }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        ref: ${{ inputs.ref || github.event.pull_request.head.sha || github.sha }}
+        fetch-depth: 0
+        persist-credentials: false
+
+    - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+
+    - name: Run
+      shell: bash
+      env:
+        RUN: ${{ inputs.run }}
+      run: mise exec -- bash -euo pipefail -c "${RUN}"
+
+    - name: Collect changes
+      id: diff
+      shell: bash
+      env:
+        PATHS: ${{ inputs.paths }}
+        EXTRA: ${{ inputs.extra-files }}
+      run: |
+        set -euo pipefail
+        out="${RUNNER_TEMP}/collect-patch"
+        mkdir -p "${out}"
+        git reset --quiet
+        sed '/^[[:space:]]*$/d' <<< "${PATHS}" | git add --pathspec-from-file=-
+        if git diff --cached --quiet; then
+          echo "changed=false" >> "${GITHUB_OUTPUT}"
+          exit 0
+        fi
+        git diff --cached --stat
+        git diff --cached --binary > "${out}/changes.patch"
+        while IFS= read -r file; do
+          [[ -n "${file}" ]] && cp -- "${file}" "${out}/"
+        done <<< "${EXTRA}"
+        echo "changed=true" >> "${GITHUB_OUTPUT}"
+
+    - if: steps.diff.outputs.changed == 'true'
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ${{ inputs.artifact }}
+        path: ${{ runner.temp }}/collect-patch/
+        retention-days: 1
+        overwrite: true
