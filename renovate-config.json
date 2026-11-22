@@ -28,7 +28,7 @@
   "registryAliases": {
     "mirror.gcr.io": "docker.io"
   },
-  "gitIgnoredAuthors": ["359826828+jesse-pinkman-bot[bot]@users.noreply.github.com"],
+  "gitIgnoredAuthors": ["359826828+ramon-zamora[bot]@users.noreply.github.com"],
   "customManagers": [
     {
       "customType": "regex",
