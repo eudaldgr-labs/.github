@@ -1,0 +1,78 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Safe Settings
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/safe-settings/**
+      - .github/workflows/safe-settings.yaml
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        description: Dry Run
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  # renovate: datasource=github-releases depName=github/safe-settings
+  SAFE_SETTINGS_VERSION: 3.0.0
+  SAFE_SETTINGS_DIR: ${{ github.workspace }}/.safe-settings
+
+jobs:
+  full-sync:
+    name: Reconcile org repository settings
+    runs-on: ubuntu-26.04
+    steps:
+      # Only for .mise, so Setup Mise installs the pinned Node rather than
+      # falling back to whatever the runner image ships.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Checkout safe-settings
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: github/safe-settings
+          ref: ${{ env.SAFE_SETTINGS_VERSION }}
+          path: ${{ env.SAFE_SETTINGS_DIR }}
+          persist-credentials: false
+
+      - name: Setup Mise
+        uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5.2.10
+        with:
+          experimental: true
+          install_args: --locked
+
+      - name: Install safe-settings
+        working-directory: ${{ env.SAFE_SETTINGS_DIR }}
+        run: npm ci
+
+      # safe-settings skips archived repos itself. The file has to exist anyway:
+      # without one, safe-settings restricts `admin`, `.github` and
+      # `safe-settings` by default, which would leave this repo unmanaged.
+      - name: Generate deployment-settings.yml
+        run: |
+          echo 'restrictedRepos: []' > deployment-settings.yml
+
+      - name: Run safe-settings full-sync
+        working-directory: ${{ env.SAFE_SETTINGS_DIR }}
+        env:
+          # Probot defaults to warn, which hides the dry-run summary.
+          LOG_LEVEL: info
+          GH_ORG: ${{ github.repository_owner }}
+          APP_ID: ${{ secrets.BOT_APP_ID }}
+          PRIVATE_KEY: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+          ADMIN_REPO: .github
+          CONFIG_PATH: .github/safe-settings
+          DEPLOYMENT_CONFIG_FILE: ${{ github.workspace }}/deployment-settings.yml
+          FULL_SYNC_NOP: ${{ inputs.dryRun || 'false' }}
+        run: npm run full-sync

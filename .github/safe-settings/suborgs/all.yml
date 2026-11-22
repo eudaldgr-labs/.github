@@ -1,0 +1,59 @@
+---
+# Baseline branch protection for the default branch.
+#
+# A suborg rather than settings.yml: safe-settings treats a top-level `rulesets:`
+# block as org-scoped, and org rulesets need GitHub Team. On the Free plan a
+# ruleset also only works on public repositories, so the repositories are listed
+# explicitly. Add a repository here when it becomes public.
+#
+# safe-settings owns these rulesets: any other ruleset on a listed repository is
+# deleted on the next sync. Per-repo additions live in ../repos/<repo>.yml; the
+# lists inside a matched ruleset are concatenated, so an override may only add.
+
+suborgrepos:
+  # minimatch's `*` never matches a dot-leading name, so list everything by name.
+  - ".github"
+  - containers
+
+rulesets:
+  - name: main
+    target: branch
+    enforcement: active
+
+    # Only the default branch; feature branches stay free to rebase and force-push.
+    conditions:
+      ref_name:
+        include:
+          - "~DEFAULT_BRANCH"
+        exclude: []
+
+    # Org owners and repository admins can always bypass, so a broken ruleset can
+    # be fixed by hand and the owner can still push directly. Bots work through
+    # pull requests and get no bypass.
+    bypass_actors:
+      - actor_type: OrganizationAdmin
+        bypass_mode: always
+      - actor_id: 5
+        actor_type: RepositoryRole
+        bypass_mode: always
+
+    rules:
+      - type: deletion
+      - type: non_fast_forward
+      # Changes arrive through pull requests; CI is the gate, not reviews.
+      - type: pull_request
+        parameters:
+          required_approving_review_count: 0
+          dismiss_stale_reviews_on_push: false
+          require_code_owner_review: false
+          require_last_push_approval: false
+          required_review_thread_resolution: false
+          # Stated defaults: safe-settings treats an omitted parameter that GitHub
+          # returns as a deletion and would rewrite the ruleset on every sync.
+          required_reviewers: []
+          dismissal_restriction:
+            enabled: false
+            allowed_actors: []
+          require_extra_approval_for_unattributed_changes: true
+          allowed_merge_methods:
+            - squash
