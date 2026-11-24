@@ -14,6 +14,7 @@
     "title": "Renovate Dashboard 🤖"
   },
   "minimumReleaseAgeBehaviour": "timestamp-optional",
+  "rebaseWhen": "conflicted",
   "ignorePaths": [
     "**/node_modules/**",
     "**/bower_components/**",
